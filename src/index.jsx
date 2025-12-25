@@ -80,7 +80,7 @@ const ORNAMENT_COLORS = [
 async function loadHDRTexture() {
     try {
         const loader = new RGBELoader();
-        const texture = await loader.loadAsync('./hdr/environment.hdr');
+        const texture = await loader.loadAsync('/hdr/environment.hdr');
         texture.mapping = THREE.EquirectangularReflectionMapping;
         
         // Optimize HDR texture for better performance and quality
@@ -595,7 +595,7 @@ function createPhotos() {
         const frame = new THREE.Mesh(frameGeometry, frameMaterial);
         
         // Photo inside - use actual image from images directory
-        const photoPath = `./images/${i + 1}.jpeg`;
+        const photoPath = `/images/${i + 1}.jpeg`;
         
         // Load texture and wait for it to be ready to get dimensions
         const texture = new THREE.TextureLoader().load(
@@ -1336,47 +1336,24 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Music player with actual audio
-let backgroundMusic;
+const backgroundMusic = document.getElementById('background-music');
 let isPlaying = false;
-let musicIcon;
-let musicTitle;
-let musicToggle;
-let playPauseIcon;
+const musicIcon = document.getElementById('music-icon');
+const musicTitle = document.getElementById('music-title');
+const musicToggle = document.getElementById('music-toggle');
+const playPauseIcon = document.getElementById('play-pause-icon');
 
-// Initialize music player after DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    backgroundMusic = document.getElementById('background-music');
-    musicIcon = document.getElementById('music-icon');
-    musicTitle = document.getElementById('music-title');
-    musicToggle = document.getElementById('music-toggle');
-    playPauseIcon = document.getElementById('play-pause-icon');
-    
-    // Add event listener for music toggle button
-    if (musicToggle) {
-        musicToggle.addEventListener('click', () => {
-            toggleMusic();
-        });
-    }
+document.getElementById('music-toggle').addEventListener('click', () => {
+    toggleMusic();
 });
 
 function toggleMusic() {
-    // Check if backgroundMusic is initialized
-    if (!backgroundMusic) {
-        console.error('Background music element not found');
-        return;
-    }
-    
     isPlaying = !isPlaying;
     
     if (isPlaying) {
         backgroundMusic.play().catch(error => {
             console.error('Failed to play music:', error);
             isPlaying = false;
-            
-            // Show user feedback if autoplay is blocked
-            if (error.name === 'NotAllowedError') {
-                console.log('Autoplay blocked by browser policy. Please click the music button to play.');
-            }
         });
     } else {
         backgroundMusic.pause();
@@ -1387,11 +1364,6 @@ function toggleMusic() {
 }
 
 function updateMusicUI() {
-    // Check if music elements are initialized
-    if (!musicIcon || !musicTitle || !musicToggle || !playPauseIcon) {
-        return;
-    }
-    
     // Update icon rotation
     if (isPlaying) {
         musicIcon.classList.add('rotating');
@@ -1464,9 +1436,8 @@ function updateMusicUI() {
         });
     }
     
-    // Don't auto play music due to browser autoplay policies
-    // Users must manually click the play button to start music
-    console.log('Music player initialized. Click the music button to play.');
+    // Auto play music after initialization
+    toggleMusic();
 })();
 
 // Handle swipe events for carousel rotation

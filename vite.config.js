@@ -3,8 +3,6 @@ import { resolve } from 'path';
 import { copyFileSync, mkdirSync, readdirSync, existsSync } from 'fs';
 
 export default defineConfig({
-  // Use relative path for assets to work correctly on all deployment platforms
-  base: './',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
