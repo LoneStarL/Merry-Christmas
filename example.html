@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand Luxury Interactive Christmas Tree</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/@react-three/fiber@8.15.11/dist/index.cjs.js" type="module"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.min.js"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body, #root { width: 100%; height: 100%; overflow: hidden; }
+        
+        body {
+            background: linear-gradient(135deg, #0a1f0a 0%, #0d2818 50%, #051005 100%);
+            font-family: 'Cinzel', serif;
+        }
+        
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        #ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .title {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffd700 0%, #ffec8b 25%, #ffd700 50%, #daa520 75%, #ffd700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            letter-spacing: 3px;
+            text-align: center;
+        }
+        
+        .status-badge {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            background: linear-gradient(135deg, rgba(10, 31, 10, 0.9) 0%, rgba(20, 50, 20, 0.9) 100%);
+            border: 2px solid #ffd700;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            color: #ffd700;
+            letter-spacing: 2px;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3), inset 0 0 20px rgba(255, 215, 0, 0.1);
+        }
+        
+        .webcam-container {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            width: 200px;
+            height: 150px;
+            border: 3px solid #ffd700;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            pointer-events: auto;
+        }
+        
+        .webcam-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        
+        .gesture-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #ff4444;
+            box-shadow: 0 0 10px currentColor;
+        }
+        
+        .gesture-indicator.active {
+            background: #44ff44;
+        }
+        
+        .hand-status {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: #ffd700;
+            background: rgba(0,0,0,0.7);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        
+        .instructions {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(10, 31, 10, 0.95) 0%, rgba(20, 50, 20, 0.95) 100%);
+            border: 2px solid #ffd700;
+            border-radius: 15px;
+            padding: 20px;
+            color: #e8dcc4;
+            max-width: 280px;
+            font-size: 0.9rem;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+        }
+        
+        .instructions h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .instructions ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .instructions li::before {
+            content: '✦';
+            color: #ffd700;
+            position: absolute;
+            left: 0;
+        }
+
+        .snowflake {
+            position: fixed;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            pointer-events: none;
+            animation: fall linear infinite;
+            z-index: 5;
+        }
+        
+        @keyframes fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(360deg); opacity: 0.3; }
+        }
+        
+        .golden-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="ui-overlay">
+        <h1 class="title">✦ Grand Luxury Christmas Tree ✦</h1>
+        <div class="instructions">
+            <h3>✦ Gesture Controls ✦</h3>
+            <ul>
+                <li>Open hand: Unleash chaos</li>
+                <li>Closed fist: Form the tree</li>
+                <li>Move hand: Control camera</li>
+            </ul>
+        </div>
+        <div class="webcam-container">
+            <video id="webcam" autoplay playsinline></video>
+            <div class="gesture-indicator" id="gesture-indicator"></div>
+            <div class="hand-status" id="hand-status">Initializing...</div>
+        </div>
+        <div class="status-badge" id="status-badge">✦ FORMED ✦</div>
+    </div>
+    
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+        // ============ CONSTANTS ============
+        const TREE_STATE = { CHAOS: 'CHAOS', FORMED: 'FORMED' };
+        const PARTICLE_COUNT = 8000;
+        const ORNAMENT_COUNT = 120;
+        const LIGHT_COUNT = 80;
+        const PHOTO_COUNT = 12;
+
+        // ============ COLOR PALETTE ============
+        const COLORS = {
+            emerald: new THREE.Color(0x0a4d2e),
+            darkEmerald: new THREE.Color(0x052e1a),
+            gold: new THREE.Color(0xffd700),
+            brightGold: new THREE.Color(0xffec8b),
+            ruby: new THREE.Color(0x8b0000),
+            silver: new THREE.Color(0xc0c0c0),
+            pearl: new THREE.Color(0xfff8dc),
+        };
+
+        // ============ UTILITY FUNCTIONS ============
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        function sphericalRandom(radius) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const r = radius * Math.cbrt(Math.random());
+            return new THREE.Vector3(
+                r * Math.sin(phi) * Math.cos(theta),
+                r * Math.sin(phi) * Math.sin(theta),
+                r * Math.cos(phi)
+            );
+        }
+
+        function conePosition(height, maxRadius) {
+            const y = Math.random() * height;
+            const radiusAtHeight = maxRadius * (1 - y / height) * 0.9;
+            const angle = Math.random() * Math.PI * 2;
+            const r = Math.sqrt(Math.random()) * radiusAtHeight;
+            return new THREE.Vector3(
+                Math.cos(angle) * r,
+                y - height / 2 + 0.5,
+                Math.sin(angle) * r
+            );
+        }
+
+        // ============ HAND TRACKING ============
+        let handLandmarks = null;
+        let isHandOpen = false;
+        let handPosition = { x: 0.5, y: 0.5 };
+
+        async function initHandTracking() {
+            const video = document.getElementById('webcam');
+            const indicator = document.getElementById('gesture-indicator');
+            const status = document.getElementById('hand-status');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 320, height: 240, facingMode: 'user' } 
+                });
+                video.srcObject = stream;
+                
+                const hands = new Hands({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
+                });
+
+                hands.setOptions({
+                    maxNumHands: 1,
+                    modelComplexity: 0,
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5
+                });
+
+                hands.onResults((results) => {
+                    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                        handLandmarks = results.multiHandLandmarks[0];
+                        indicator.classList.add('active');
+                        
+                        // Calculate if hand is open
+                        const thumbTip = handLandmarks[4];
+                        const indexTip = handLandmarks[8];
+                        const middleTip = handLandmarks[12];
+                        const ringTip = handLandmarks[16];
+                        const pinkyTip = handLandmarks[20];
+                        
+                        const palmBase = handLandmarks[0];
+                        const avgFingerY = (indexTip.y + middleTip.y + ringTip.y + pinkyTip.y) / 4;
+                        
+                        isHandOpen = avgFingerY < palmBase.y - 0.1;
+                        handPosition = { x: palmBase.x, y: palmBase.y };
+                        
+                        status.textContent = isHandOpen ? '✋ OPEN' : '✊ CLOSED';
+                        
+                        window.dispatchEvent(new CustomEvent('handGesture', { 
+                            detail: { isOpen: isHandOpen, position: handPosition } 
+                        }));
+                    } else {
+                        indicator.classList.remove('active');
+                        status.textContent = 'No hand detected';
+                        handLandmarks = null;
+                    }
+                });
+
+                const camera = new Camera(video, {
+                    onFrame: async () => {
+                        await hands.send({ image: video });
+                    },
+                    width: 320,
+                    height: 240
+                });
+                
+                camera.start();
+                status.textContent = 'Ready';
+            } catch (err) {
+                console.error('Hand tracking error:', err);
+                status.textContent = 'Camera unavailable';
+            }
+        }
+
+        // ============ SHADER MATERIALS ============
+        const foliageVertexShader = `
+            attribute vec3 chaosPosition;
+            attribute vec3 targetPosition;
+            attribute float size;
+            attribute float brightness;
+            
+            uniform float progress;
+            uniform float time;
+            
+            varying float vBrightness;
+            varying float vProgress;
+            
+            void main() {
+                vBrightness = brightness;
+                vProgress = progress;
+                
+                vec3 pos = mix(chaosPosition, targetPosition, progress);
+                
+                // Add subtle animation
+                float wave = sin(time * 2.0 + pos.x * 3.0 + pos.y * 2.0) * 0.05 * (1.0 - progress);
+                pos += vec3(wave, wave * 0.5, wave);
+                
+                vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                gl_Position = projectionMatrix * mvPosition;
+                gl_PointSize = size * (200.0 / -mvPosition.z);
+            }
+        `;
+
+        const foliageFragmentShader = `
+            uniform vec3 colorDark;
+            uniform vec3 colorLight;
+            uniform float time;
+            
+            varying float vBrightness;
+            varying float vProgress;
+            
+            void main() {
+                vec2 center = gl_PointCoord - 0.5;
+                float dist = length(center);
+                
+                if (dist > 0.5) discard;
+                
+                float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
+                vec3 color = mix(colorDark, colorLight, vBrightness + sin(time * 3.0) * 0.1);
+                
+                // Add golden shimmer when formed
+                float shimmer = sin(time * 5.0 + vBrightness * 10.0) * 0.5 + 0.5;
+                vec3 gold = vec3(1.0, 0.84, 0.0);
+                color = mix(color, gold, shimmer * 0.15 * vProgress);
+                
+                gl_FragColor = vec4(color, alpha * 0.9);
+            }
+        `;
+
+        // ============ FOLIAGE PARTICLES COMPONENT ============
+        function FoliageParticles({ progress }) {
+            const pointsRef = useRef();
+            const materialRef = useRef();
+            
+            const [positions, chaosPositions, targetPositions, sizes, brightnesses] = useMemo(() => {
+                const pos = new Float32Array(PARTICLE_COUNT * 3);
+                const chaos = new Float32Array(PARTICLE_COUNT * 3);
+                const target = new Float32Array(PARTICLE_COUNT * 3);
+                const sz = new Float32Array(PARTICLE_COUNT);
+                const br = new Float32Array(PARTICLE_COUNT);
+                
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    const chaosPos = sphericalRandom(15);
+                    const targetPos = conePosition(10, 4);
+                    
+                    chaos[i * 3] = chaosPos.x;
+                    chaos[i * 3 + 1] = chaosPos.y;
+                    chaos[i * 3 + 2] = chaosPos.z;
+                    
+                    target[i * 3] = targetPos.x;
+                    target[i * 3 + 1] = targetPos.y;
+                    target[i * 3 + 2] = targetPos.z;
+                    
+                    pos[i * 3] = targetPos.x;
+                    pos[i * 3 + 1] = targetPos.y;
+                    pos[i * 3 + 2] = targetPos.z;
+                    
+                    sz[i] = 0.5 + Math.random() * 1.5;
+                    br[i] = Math.random();
+                }
+                
+                return [pos, chaos, target, sz, br];
+            }, []);
+            
+            const uniforms = useMemo(() => ({
+                progress: { value: 1.0 },
+                time: { value: 0 },
+                colorDark: { value: COLORS.darkEmerald },
+                colorLight: { value: COLORS.emerald }
+            }), []);
+            
+            useEffect(() => {
+                const animate = () => {
+                    if (materialRef.current) {
+                        materialRef.current.uniforms.progress.value = progress;
+                        materialRef.current.uniforms.time.value = performance.now() * 0.001;
+                    }
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }, [progress]);
+            
+            return (
+                <points ref={pointsRef}>
+                    <bufferGeometry>
+                        <bufferAttribute
+                            attach="attributes-position"
+                            count={PARTICLE_COUNT}
+                            array={positions}
+                            itemSize={3}
+                        />
+                        <bufferAttribute
+                            attach="attributes-chaosPosition"
+                            count={PARTICLE_COUNT}
+                            array={chaosPositions}
+                            itemSize={3}
+                        />
+                        <bufferAttribute
+                            attach="attributes-targetPosition"
+                            count={PARTICLE_COUNT}
+                            array={targetPositions}
+                            itemSize={3}
+                        />
+                        <bufferAttribute
+                            attach="attributes-size"
+                            count={PARTICLE_COUNT}
+                            array={sizes}
+                            itemSize={1}
+                        />
+                        <bufferAttribute
+                            attach="attributes-brightness"
+                            count={PARTICLE_COUNT}
+                            array={brightnesses}
+                            itemSize={1}
+                        />
+                    </bufferGeometry>
+                    <shaderMaterial
+                        ref={materialRef}
+                        vertexShader={foliageVertexShader}
+                        fragmentShader={foliageFragmentShader}
+                        uniforms={uniforms}
+                        transparent
+                        depthWrite={false}
+                        blending={THREE.AdditiveBlending}
+                    />
+                </points>
+            );
+        }
+
+        // ============ ORNAMENT COMPONENT ============
+        function Ornament({ chaosPos, targetPos, progress, color, type, scale }) {
+            const meshRef = useRef();
+            const [currentPos, setCurrentPos] = useState(targetPos);
+            
+            useEffect(() => {
+                const animate = () => {
+                    if (meshRef.current) {
+                        meshRef.current.position.x = lerp(chaosPos[0], targetPos[0], progress);
+                        meshRef.current.position.y = lerp(chaosPos[1], targetPos[1], progress);
+                        meshRef.current.position.z = lerp(chaosPos[2], targetPos[2], progress);
+                        meshRef.current.rotation.y += 0.01 * (1 - progress + 0.2);
+                        meshRef.current.rotation.x += 0.005 * (1 - progress);
+                    }
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }, [progress, chaosPos, targetPos]);
+            
+            const geometry = useMemo(() => {
+                switch(type) {
+                    case 'box':
+                        return <boxGeometry args={[0.4 * scale, 0.4 * scale, 0.4 * scale]} />;
+                    case 'ball':
+                        return <sphereGeometry args={[0.25 * scale, 16, 16]} />;
+                    default:
+                        return <sphereGeometry args={[0.15 * scale, 8, 8]} />;
+                }
+            }, [type, scale]);
+            
+            return (
+                <mesh ref={meshRef} position={targetPos}>
+                    {geometry}
+                    <meshStandardMaterial
+                        color={color}
+                        metalness={0.9}
+                        roughness={0.1}
+                        emissive={color}
+                        emissiveIntensity={type === 'light' ? 2 : 0.3}
+                    />
+                </mesh>
+            );
+        }
+
+        // ============ POLAROID PHOTO COMPONENT ============
+        function PolaroidPhoto({ position, rotation, imageIndex }) {
+            const photoRef = useRef();
+            
+            // Sample image placeholders with festive colors
+            const colors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3', '#f38181', '#aa96da'];
+            const bgColor = colors[imageIndex % colors.length];
+            
+            useEffect(() => {
+                const animate = () => {
+                    if (photoRef.current) {
+                        photoRef.current.rotation.z = Math.sin(performance.now() * 0.001 + imageIndex) * 0.1;
+                    }
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }, [imageIndex]);
+            
+            return (
+                <group ref={photoRef} position={position} rotation={rotation}>
+                    {/* Polaroid frame */}
+                    <mesh>
+                        <boxGeometry args={[1.2, 1.5, 0.05]} />
+                        <meshStandardMaterial color="#fffff0" roughness={0.8} />
+                    </mesh>
+                    {/* Photo area */}
+                    <mesh position={[0, 0.1, 0.03]}>
+                        <planeGeometry args={[1, 1]} />
+                        <meshBasicMaterial color={bgColor} />
+                    </mesh>
+                    {/* Golden border accent */}
+                    <mesh position={[0, 0.1, 0.04]}>
+                        <ringGeometry args={[0.35, 0.4, 32]} />
+                        <meshStandardMaterial color="#ffd700" metalness={0.8} roughness={0.2} />
+                    </mesh>
+                    {/* Decorative star */}
+                    <mesh position={[0, 0.1, 0.05]}>
+                        <circleGeometry args={[0.15, 5]} />
+                        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.5} />
+                    </mesh>
+                </group>
+            );
+        }
+
+        // ============ TREE STAR COMPONENT ============
+        function TreeStar({ progress }) {
+            const starRef = useRef();
+            
+            useEffect(() => {
+                const animate = () => {
+                    if (starRef.current) {
+                        starRef.current.rotation.y += 0.02;
+                        starRef.current.scale.setScalar(0.8 + Math.sin(performance.now() * 0.003) * 0.1);
+                        const targetY = 5.5;
+                        starRef.current.position.y = lerp(10, targetY, progress);
+                    }
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }, [progress]);
+            
+            return (
+                <group ref={starRef} position={[0, 5.5, 0]}>
+                    <mesh>
+                        <octahedronGeometry args={[0.8, 0]} />
+                        <meshStandardMaterial
+                            color="#ffd700"
+                            emissive="#ffd700"
+                            emissiveIntensity={2}
+                            metalness={1}
+                            roughness={0}
+                        />
+                    </mesh>
+                    <pointLight color="#ffd700" intensity={50} distance={10} />
+                </group>
+            );
+        }
+
+        // ============ TREE TRUNK COMPONENT ============
+        function TreeTrunk({ progress }) {
+            const trunkRef = useRef();
+            
+            useEffect(() => {
+                const animate = () => {
+                    if (trunkRef.current) {
+                        const targetY = -5;
+                        trunkRef.current.position.y = lerp(-15, targetY, progress);
+                    }
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }, [progress]);
+            
+            return (
+                <mesh ref={trunkRef} position={[0, -5, 0]}>
+                    <cylinderGeometry args={[0.5, 0.8, 2, 16]} />
+                    <meshStandardMaterial color="#4a3728" roughness={0.9} />
+                </mesh>
+            );
+        }
+
+        // ============ MAIN SCENE COMPONENT ============
+        function Scene({ treeState, cameraOffset }) {
+            const [progress, setProgress] = useState(1);
+            const targetProgress = treeState === TREE_STATE.FORMED ? 1 : 0;
+            
+            const ornaments = useMemo(() => {
+                const items = [];
+                const types = ['box', 'ball', 'light'];
+                const colors = [0xffd700, 0x8b0000, 0xc0c0c0, 0xff6347, 0x4169e1, 0x32cd32];
+                
+                for (let i = 0; i < ORNAMENT_COUNT; i++) {
+                    const chaosPos = sphericalRandom(12);
+                    const targetPos = conePosition(9, 3.5);
+                    const type = types[i % 3];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    const scale = 0.8 + Math.random() * 0.6;
+                    
+                    items.push({
+                        id: i,
+                        chaosPos: [chaosPos.x, chaosPos.y, chaosPos.z],
+                        targetPos: [targetPos.x, targetPos.y, targetPos.z],
+                        type,
+                        color,
+                        scale
+                    });
+                }
+                return items;
+            }, []);
+            
+            const photos = useMemo(() => {
+                const items = [];
+                for (let i = 0; i < PHOTO_COUNT; i++) {
+                    const angle = (i / PHOTO_COUNT) * Math.PI * 2;
+                    const height = (i % 4) * 2 - 2;
+                    const radius = 3 + (i % 3) * 0.5;
+                    
+                    items.push({
+                        id: i,
+                        position: [
+                            Math.cos(angle) * radius,
+                            height,
+                            Math.sin(angle) * radius
+                        ],
+                        rotation: [0, -angle + Math.PI, 0]
+                    });
+                }
+                return items;
+            }, []);
+            
+            useEffect(() => {
+                const animate = () => {
+                    setProgress(prev => lerp(prev, targetProgress, 0.03));
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }, [targetProgress]);
+            
+            // Update status badge
+            useEffect(() => {
+                const badge = document.getElementById('status-badge');
+                if (badge) {
+                    badge.textContent = treeState === TREE_STATE.FORMED ? '✦ FORMED ✦' : '✦ CHAOS ✦';
+                }
+            }, [treeState]);
+            
+            return (
+                <>
+                    {/* Lighting */}
+                    <ambientLight intensity={0.3} />
+                    <directionalLight position={[10, 20, 10]} intensity={1} color="#fff8e7" />
+                    <pointLight position={[-10, 10, -10]} intensity={0.5} color="#ffd700" />
+                    <pointLight position={[0, 0, 10]} intensity={0.3} color="#87ceeb" />
+                    
+                    {/* Camera */}
+                    <perspectiveCamera
+                        position={[
+                            cameraOffset.x * 10,
+                            4 + cameraOffset.y * 5,
+                            20
+                        ]}
+                    />
+                    
+                    {/* Foliage Particles */}
+                    <FoliageParticles progress={progress} />
+                    
+                    {/* Ornaments */}
+                    {ornaments.map(orn => (
+                        <Ornament
+                            key={orn.id}
+                            chaosPos={orn.chaosPos}
+                            targetPos={orn.targetPos}
+                            progress={progress}
+                            color={orn.color}
+                            type={orn.type}
+                            scale={orn.scale}
+                        />
+                    ))}
+                    
+                    {/* Polaroid Photos */}
+                    {photos.map(photo => (
+                        <PolaroidPhoto
+                            key={photo.id}
+                            position={photo.position}
+                            rotation={photo.rotation}
+                            imageIndex={photo.id}
+                        />
+                    ))}
+                    
+                    {/* Tree Star */}
+                    <TreeStar progress={progress} />
+                    
+                    {/* Tree Trunk */}
+                    <TreeTrunk progress={progress} />
+                    
+                    {/* Ground decoration */}
+                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -6, 0]}>
+                        <circleGeometry args={[8, 64]} />
+                        <meshStandardMaterial 
+                            color="#0d2818" 
+                            metalness={0.3} 
+                            roughness={0.7}
+                        />
+                    </mesh>
+                    
+                    {/* Golden ring around tree */}
+                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5.9, 0]}>
+                        <ringGeometry args={[5.5, 6, 64]} />
+                        <meshStandardMaterial 
+                            color="#ffd700" 
+                            metalness={0.9} 
+                            roughness={0.1}
+                            emissive="#ffd700"
+                            emissiveIntensity={0.3}
+                        />
+                    </mesh>
+                </>
+            );
+        }
+
+        // ============ MAIN APP COMPONENT ============
+        function App() {
+            const [treeState, setTreeState] = useState(TREE_STATE.FORMED);
+            const [cameraOffset, setCameraOffset] = useState({ x: 0, y: 0 });
+            const canvasRef = useRef();
+            
+            useEffect(() => {
+                // Initialize hand tracking after a delay
+                setTimeout(initHandTracking, 1000);
+                
+                // Listen for hand gestures
+                const handleGesture = (e) => {
+                    const { isOpen, position } = e.detail;
+                    setTreeState(isOpen ? TREE_STATE.CHAOS : TREE_STATE.FORMED);
+                    setCameraOffset({
+                        x: (position.x - 0.5) * 2,
+                        y: (position.y - 0.5) * 2
+                    });
+                };
+                
+                window.addEventListener('handGesture', handleGesture);
+                
+                // Create snowflakes
+                for (let i = 0; i < 30; i++) {
+                    setTimeout(() => {
+                        const snowflake = document.createElement('div');
+                        snowflake.className = 'snowflake';
+                        snowflake.textContent = '❄';
+                        snowflake.style.left = Math.random() * 100 + 'vw';
+                        snowflake.style.animationDuration = (5 + Math.random() * 10) + 's';
+                        snowflake.style.animationDelay = Math.random() * 5 + 's';
+                        snowflake.style.fontSize = (0.5 + Math.random()) + 'rem';
+                        document.body.appendChild(snowflake);
+                    }, i * 200);
+                }
+                
+                // Keyboard fallback
+                const handleKeydown = (e) => {
+                    if (e.code === 'Space') {
+                        setTreeState(prev => 
+                            prev === TREE_STATE.FORMED ? TREE_STATE.CHAOS : TREE_STATE.FORMED
+                        );
+                    }
+                };
+                window.addEventListener('keydown', handleKeydown);
+                
+                return () => {
+                    window.removeEventListener('handGesture', handleGesture);
+                    window.removeEventListener('keydown', handleKeydown);
+                };
+            }, []);
+            
+            useEffect(() => {
+                // Initialize Three.js scene
+                const container = document.getElementById('canvas-container');
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(0, 4, 20);
+                
+                const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                renderer.toneMappingExposure = 1.2;
+                container.appendChild(renderer.domElement);
+                
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+                scene.add(ambientLight);
+                
+                const mainLight = new THREE.DirectionalLight(0xfff8e7, 1.5);
+                mainLight.position.set(10, 20, 10);
+                scene.add(mainLight);
+                
+                const goldLight = new THREE.PointLight(0xffd700, 1, 50);
+                goldLight.position.set(-10, 10, -10);
+                scene.add(goldLight);
+                
+                // Create particle system for foliage
+                const particleGeometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(PARTICLE_COUNT * 3);
+                const chaosPositions = new Float32Array(PARTICLE_COUNT * 3);
+                const targetPositions = new Float32Array(PARTICLE_COUNT * 3);
+                const sizes = new Float32Array(PARTICLE_COUNT);
+                const colors = new Float32Array(PARTICLE_COUNT * 3);
+                
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    const chaosPos = sphericalRandom(15);
+                    const targetPos = conePosition(10, 4);
+                    
+                    chaosPositions[i * 3] = chaosPos.x;
+                    chaosPositions[i * 3 + 1] = chaosPos.y;
+                    chaosPositions[i * 3 + 2] = chaosPos.z;
+                    
+                    targetPositions[i * 3] = targetPos.x;
+                    targetPositions[i * 3 + 1] = targetPos.y;
+                    targetPositions[i * 3 + 2] = targetPos.z;
+                    
+                    positions[i * 3] = targetPos.x;
+                    positions[i * 3 + 1] = targetPos.y;
+                    positions[i * 3 + 2] = targetPos.z;
+                    
+                    sizes[i] = 3 + Math.random() * 5;
+                    
+                    const colorMix = Math.random();
+                    if (colorMix < 0.7) {
+                        colors[i * 3] = 0.04 + Math.random() * 0.1;
+                        colors[i * 3 + 1] = 0.3 + Math.random() * 0.2;
+                        colors[i * 3 + 2] = 0.1 + Math.random() * 0.1;
+                    } else {
+                        colors[i * 3] = 1;
+                        colors[i * 3 + 1] = 0.84;
+                        colors[i * 3 + 2] = 0;
+                    }
+                }
+                
+                particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                particleGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+                
+                const particleMaterial = new THREE.PointsMaterial({
+                    size: 0.15,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.9,
+                    blending: THREE.AdditiveBlending,
+                    sizeAttenuation: true
+                });
+                
+                const particles = new THREE.Points(particleGeometry, particleMaterial);
+                scene.add(particles);
+                
+                // Create ornaments
+                const ornamentGroups = [];
+                const ornamentTypes = [
+                    { geometry: new THREE.SphereGeometry(0.25, 16, 16), colors: [0xffd700, 0x8b0000, 0xc0c0c0] },
+                    { geometry: new THREE.BoxGeometry(0.4, 0.4, 0.4), colors: [0xff6347, 0x4169e1, 0x32cd32] },
+                    { geometry: new THREE.SphereGeometry(0.12, 8, 8), colors: [0xffd700, 0xffffff, 0xff69b4] }
+                ];
+                
+                for (let i = 0; i < ORNAMENT_COUNT; i++) {
+                    const typeIndex = i % 3;
+                    const type = ornamentTypes[typeIndex];
+                    const color = type.colors[Math.floor(Math.random() * type.colors.length)];
+                    
+                    const material = new THREE.MeshStandardMaterial({
+                        color: color,
+                        metalness: 0.9,
+                        roughness: 0.1,
+                        emissive: color,
+                        emissiveIntensity: typeIndex === 2 ? 2 : 0.3
+                    });
+                    
+                    const mesh = new THREE.Mesh(type.geometry, material);
+                    const chaosPos = sphericalRandom(12);
+                    const targetPos = conePosition(9, 3.5);
+                    
+                    mesh.userData = {
+                        chaosPos: chaosPos.clone(),
+                        targetPos: targetPos.clone()
+                    };
+                    
+                    mesh.position.copy(targetPos);
+                    scene.add(mesh);
+                    ornamentGroups.push(mesh);
+                }
+                
+                // Create polaroid photos
+                const photos = [];
+                for (let i = 0; i < PHOTO_COUNT; i++) {
+                    const angle = (i / PHOTO_COUNT) * Math.PI * 2;
+                    const height = (i % 4) * 2 - 2;
+                    const radius = 3.5 + (i % 3) * 0.5;
+                    
+                    const photoGroup = new THREE.Group();
+                    
+                    // Frame
+                    const frameMat = new THREE.MeshStandardMaterial({ color: 0xfffff0, roughness: 0.8 });
+                    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.5, 0.05), frameMat);
+                    photoGroup.add(frame);
+                    
+                    // Photo
+                    const photoColors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3, 0xf38181, 0xaa96da];
+                    const photoMat = new THREE.MeshBasicMaterial({ color: photoColors[i % photoColors.length] });
+                    const photo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), photoMat);
+                    photo.position.z = 0.03;
+                    photo.position.y = 0.1;
+                    photoGroup.add(photo);
+                    
+                    // Star decoration
+                    const starMat = new THREE.MeshStandardMaterial({ 
+                        color: 0xffd700, 
+                        emissive: 0xffd700, 
+                        emissiveIntensity: 0.5 
+                    });
+                    const star = new THREE.Mesh(new THREE.CircleGeometry(0.15, 5), starMat);
+                    star.position.z = 0.05;
+                    star.position.y = 0.1;
+                    photoGroup.add(star);
+                    
+                    photoGroup.position.set(
+                        Math.cos(angle) * radius,
+                        height,
+                        Math.sin(angle) * radius
+                    );
+                    photoGroup.rotation.y = -angle + Math.PI;
+                    
+                    photoGroup.userData = {
+                        chaosPos: sphericalRandom(10),
+                        targetPos: photoGroup.position.clone(),
+                        originalRotation: photoGroup.rotation.clone()
+                    };
+                    
+                    scene.add(photoGroup);
+                    photos.push(photoGroup);
+                }
+                
+                // Tree star
+                const starGeometry = new THREE.OctahedronGeometry(0.8, 0);
+                const starMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffd700,
+                    emissive: 0xffd700,
+                    emissiveIntensity: 2,
+                    metalness: 1,
+                    roughness: 0
+                });
+                const star = new THREE.Mesh(starGeometry, starMaterial);
+                star.position.set(0, 5.5, 0);
+                scene.add(star);
+                
+                const starLight = new THREE.PointLight(0xffd700, 50, 10);
+                star.add(starLight);
+                
+                // Tree trunk
+                const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.8, 2, 16);
+                const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.set(0, -5, 0);
+                scene.add(trunk);
+                
+                // Ground
+                const groundGeometry = new THREE.CircleGeometry(8, 64);
+                const groundMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x0d2818, 
+                    metalness: 0.3, 
+                    roughness: 0.7 
+                });
+                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                ground.rotation.x = -Math.PI / 2;
+                ground.position.y = -6;
+                scene.add(ground);
+                
+                // Golden ring
+                const ringGeometry = new THREE.RingGeometry(5.5, 6, 64);
+                const ringMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffd700,
+                    metalness: 0.9,
+                    roughness: 0.1,
+                    emissive: 0xffd700,
+                    emissiveIntensity: 0.3,
+                    side: THREE.DoubleSide
+                });
+                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.y = -5.9;
+                scene.add(ring);
+                
+                // Animation state
+                let progress = 1;
+                let targetProgress = 1;
+                let currentCameraOffset = { x: 0, y: 0 };
+                
+                // Update function
+                const updateState = (state, offset) => {
+                    targetProgress = state === TREE_STATE.FORMED ? 1 : 0;
+                    currentCameraOffset = offset;
+                };
+                
+                // Subscribe to state changes
+                const originalSetTreeState = setTreeState;
+                window.updateTreeState = (state, offset) => {
+                    updateState(state, offset);
+                };
+                
+                // Listen for hand gestures
+                window.addEventListener('handGesture', (e) => {
+                    const { isOpen, position } = e.detail;
+                    const newState = isOpen ? TREE_STATE.CHAOS : TREE_STATE.FORMED;
+                    targetProgress = newState === TREE_STATE.FORMED ? 1 : 0;
+                    currentCameraOffset = {
+                        x: (position.x - 0.5) * 2,
+                        y: (position.y - 0.5) * 2
+                    };
+                });
+                
+                // Keyboard fallback
+                window.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        targetProgress = targetProgress === 1 ? 0 : 1;
+                    }
+                });
+                
+                // Animation loop
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    
+                    const time = performance.now() * 0.001;
+                    
+                    // Smooth progress interpolation
+                    progress = lerp(progress, targetProgress, 0.03);
+                    
+                    // Update particle positions
+                    const posArray = particles.geometry.attributes.position.array;
+                    for (let i = 0; i < PARTICLE_COUNT; i++) {
+                        posArray[i * 3] = lerp(chaosPositions[i * 3], targetPositions[i * 3], progress);
+                        posArray[i * 3 + 1] = lerp(chaosPositions[i * 3 + 1], targetPositions[i * 3 + 1], progress);
+                        posArray[i * 3 + 2] = lerp(chaosPositions[i * 3 + 2], targetPositions[i * 3 + 2], progress);
+                        
+                        // Add subtle wave animation
+                        const wave = Math.sin(time * 2 + i * 0.1) * 0.05 * (1 - progress);
+                        posArray[i * 3] += wave;
+                        posArray[i * 3 + 1] += wave * 0.5;
+                    }
+                    particles.geometry.attributes.position.needsUpdate = true;
+                    
+                    // Update ornaments
+                    ornamentGroups.forEach((mesh, i) => {
+                        const { chaosPos, targetPos } = mesh.userData;
+                        mesh.position.x = lerp(chaosPos.x, targetPos.x, progress);
+                        mesh.position.y = lerp(chaosPos.y, targetPos.y, progress);
+                        mesh.position.z = lerp(chaosPos.z, targetPos.z, progress);
+                        mesh.rotation.y += 0.01 * (1 - progress + 0.2);
+                        mesh.rotation.x += 0.005 * (1 - progress);
+                    });
+                    
+                    // Update photos
+                    photos.forEach((photo, i) => {
+                        const { chaosPos, targetPos } = photo.userData;
+                        photo.position.x = lerp(chaosPos.x, targetPos.x, progress);
+                        photo.position.y = lerp(chaosPos.y, targetPos.y, progress);
+                        photo.position.z = lerp(chaosPos.z, targetPos.z, progress);
+                        photo.rotation.z = Math.sin(time + i) * 0.1 * (1 - progress * 0.5);
+                    });
+                    
+                    // Update star
+                    star.rotation.y += 0.02;
+                    star.position.y = lerp(12, 5.5, progress);
+                    const starScale = 0.8 + Math.sin(time * 3) * 0.1;
+                    star.scale.setScalar(starScale);
+                    
+                    // Update trunk
+                    trunk.position.y = lerp(-15, -5, progress);
+                    
+                    // Update camera based on hand position
+                    camera.position.x = lerp(camera.position.x, currentCameraOffset.x * 8, 0.05);
+                    camera.position.y = lerp(camera.position.y, 4 + currentCameraOffset.y * 4, 0.05);
+                    camera.lookAt(0, 0, 0);
+                    
+                    // Update status badge
+                    const badge = document.getElementById('status-badge');
+                    if (badge) {
+                        badge.textContent = progress > 0.5 ? '✦ FORMED ✦' : '✦ CHAOS ✦';
+                    }
+                    
+                    renderer.render(scene, camera);
+                };
+                
+                animate();
+                
+                // Handle resize
+                const handleResize = () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                };
+                window.addEventListener('resize', handleResize);
+                
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                    container.removeChild(renderer.domElement);
+                    renderer.dispose();
+                };
+            }, []);
+            
+            return null;
+        }
+
+        // ============ RENDER ============
+        ReactDOM.createRoot(document.getElementById('canvas-container')).render(<App />);
+    </script>
+</body>
+</html>
