@@ -3,8 +3,8 @@ import { resolve } from 'path';
 import { copyFileSync, mkdirSync, readdirSync, existsSync } from 'fs';
 
 export default defineConfig({
-  // Set base path for GitHub Pages deployment
-  base: '/Merry-Christmas/',
+  // Use relative path for assets to work correctly on all deployment platforms
+  base: './',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
