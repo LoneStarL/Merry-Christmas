@@ -1336,24 +1336,47 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Music player with actual audio
-const backgroundMusic = document.getElementById('background-music');
+let backgroundMusic;
 let isPlaying = false;
-const musicIcon = document.getElementById('music-icon');
-const musicTitle = document.getElementById('music-title');
-const musicToggle = document.getElementById('music-toggle');
-const playPauseIcon = document.getElementById('play-pause-icon');
+let musicIcon;
+let musicTitle;
+let musicToggle;
+let playPauseIcon;
 
-document.getElementById('music-toggle').addEventListener('click', () => {
-    toggleMusic();
+// Initialize music player after DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    backgroundMusic = document.getElementById('background-music');
+    musicIcon = document.getElementById('music-icon');
+    musicTitle = document.getElementById('music-title');
+    musicToggle = document.getElementById('music-toggle');
+    playPauseIcon = document.getElementById('play-pause-icon');
+    
+    // Add event listener for music toggle button
+    if (musicToggle) {
+        musicToggle.addEventListener('click', () => {
+            toggleMusic();
+        });
+    }
 });
 
 function toggleMusic() {
+    // Check if backgroundMusic is initialized
+    if (!backgroundMusic) {
+        console.error('Background music element not found');
+        return;
+    }
+    
     isPlaying = !isPlaying;
     
     if (isPlaying) {
         backgroundMusic.play().catch(error => {
             console.error('Failed to play music:', error);
             isPlaying = false;
+            
+            // Show user feedback if autoplay is blocked
+            if (error.name === 'NotAllowedError') {
+                console.log('Autoplay blocked by browser policy. Please click the music button to play.');
+            }
         });
     } else {
         backgroundMusic.pause();
@@ -1364,6 +1387,11 @@ function toggleMusic() {
 }
 
 function updateMusicUI() {
+    // Check if music elements are initialized
+    if (!musicIcon || !musicTitle || !musicToggle || !playPauseIcon) {
+        return;
+    }
+    
     // Update icon rotation
     if (isPlaying) {
         musicIcon.classList.add('rotating');
@@ -1436,8 +1464,9 @@ function updateMusicUI() {
         });
     }
     
-    // Auto play music after initialization
-    toggleMusic();
+    // Don't auto play music due to browser autoplay policies
+    // Users must manually click the play button to start music
+    console.log('Music player initialized. Click the music button to play.');
 })();
 
 // Handle swipe events for carousel rotation
