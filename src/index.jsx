@@ -1338,6 +1338,7 @@ document.addEventListener('keydown', (e) => {
 // Music player with actual audio
 const backgroundMusic = document.getElementById('background-music');
 let isPlaying = false;
+let hasInteracted = false;
 const musicIcon = document.getElementById('music-icon');
 const musicTitle = document.getElementById('music-title');
 const musicToggle = document.getElementById('music-toggle');
@@ -1347,10 +1348,38 @@ document.getElementById('music-toggle').addEventListener('click', () => {
     toggleMusic();
 });
 
+// Try to play music on user interaction
+function tryAutoPlay() {
+    if (!hasInteracted) {
+        hasInteracted = true;
+        // Unmute and try to play
+        backgroundMusic.muted = false;
+        backgroundMusic.play().catch(error => {
+            console.error('Failed to auto-play music:', error);
+        });
+        // Update UI to reflect actual state
+        isPlaying = !backgroundMusic.paused;
+        updateMusicUI();
+    }
+}
+
+// Add event listeners for user interaction
+document.addEventListener('click', tryAutoPlay);
+document.addEventListener('touchstart', tryAutoPlay);
+document.addEventListener('keydown', tryAutoPlay);
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Preload music but don't autoplay yet
+    backgroundMusic.load();
+});
+
 function toggleMusic() {
     isPlaying = !isPlaying;
+    hasInteracted = true;
     
     if (isPlaying) {
+        // Ensure music is unmuted when user explicitly toggles play
+        backgroundMusic.muted = false;
         backgroundMusic.play().catch(error => {
             console.error('Failed to play music:', error);
             isPlaying = false;
@@ -1436,8 +1465,7 @@ function updateMusicUI() {
         });
     }
     
-    // Auto play music after initialization
-    toggleMusic();
+    // Music will play on first user interaction
 })();
 
 // Handle swipe events for carousel rotation
