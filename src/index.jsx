@@ -80,7 +80,7 @@ const ORNAMENT_COLORS = [
 async function loadHDRTexture() {
     try {
         const loader = new RGBELoader();
-        const texture = await loader.loadAsync('/assets/hdr/environment.hdr');
+        const texture = await loader.loadAsync('/hdr/environment.hdr');
         texture.mapping = THREE.EquirectangularReflectionMapping;
         
         // Optimize HDR texture for better performance and quality
@@ -594,8 +594,8 @@ function createPhotos() {
         });
         const frame = new THREE.Mesh(frameGeometry, frameMaterial);
         
-        // Photo inside - use actual image from assets/images
-        const photoPath = `./assets/images/${i + 1}.jpeg`;
+        // Photo inside - use actual image from images directory
+        const photoPath = `/images/${i + 1}.jpeg`;
         
         // Load texture and wait for it to be ready to get dimensions
         const texture = new THREE.TextureLoader().load(

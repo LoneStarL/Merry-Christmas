@@ -1,10 +1,16 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { copyFileSync, mkdirSync, readdirSync, existsSync } from 'fs';
 
 export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
   server: {
     port: 3000,
@@ -15,4 +21,6 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  // Set the public directory to the assets folder
+  publicDir: 'assets',
 });
